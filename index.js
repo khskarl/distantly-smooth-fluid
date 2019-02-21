@@ -4,7 +4,7 @@ let simulation = null;
 
 rust
   .then(m => {
-    simulation = new m.Simulation(100, 1.4, 0.2)
+    simulation = new m.Simulation(100, 800, 600, 0.6, 0.2)
     console.log(simulation.send_simulation_to_js())
     run();
   })
@@ -25,10 +25,15 @@ const vsCode = `
 
 const fsCode = `
   varying vec3 v_Normal;
+  uniform vec3 emission;
+
   void main() {
-      gl_FragColor = vec4(v_Normal, 1.0);
+      vec3 color = max(vec3(v_Normal.xy, 1.0), emission);
+      gl_FragColor = vec4(color, 1.0);
   }
   `;
+
+const scale = 0.01
 
 function run() {
   let app = clay.application.create('#viewport', {
@@ -40,33 +45,36 @@ function run() {
         [0, 0, 10],
         [0, 0, 0],
         'orthographic',
-        [this.width * 0.01, this.height * 0.01, 1000]);
+        [this.width * scale, this.height * scale, 1000]);
 
       let instancedCubeMesh = new clay.InstancedMesh({
-        geometry: new clay.geometry.Sphere({ radius: 0.1 }),
-        material: app.createMaterial()
+        geometry: new clay.geometry.Sphere({
+          radius: 0.1,
+        }),
+        material: new clay.Material({
+        })
       });
 
-      app.scene.add(instancedCubeMesh);
 
       let positions = simulation.send_simulation_to_js()['positions'];
-      let particles_mesh = [];
+      this._particles = [];
       for (let i = 0; i < positions.length; i++) {
 
-        let node = app.createNode();
-        console.log(positions[i])
-        node.position.set(
+        let sphere = app.createSphere({
+          shader: new clay.Shader(vsCode, fsCode)
+        });
+
+        sphere.position.set(
           positions[i][0],
           positions[i][1],
-          0);
+          0
+        );
 
-        particles_mesh.push({
-          node: node
-        });
+        sphere.scale.set(0.1, 0.1, 0.1)
+        this._particles.push(sphere)
+
       }
 
-      instancedCubeMesh.instances = particles_mesh;
-      this._particles = particles_mesh;
     },
 
     loop: function (app) {
@@ -74,10 +82,17 @@ function run() {
       simulation.step(dt)
       let positions = simulation.send_simulation_to_js()['positions'];
 
-      this._particles.forEach(function (particle, idx) {
-        particle.node.position.x = positions[idx][0];
-        particle.node.position.y = positions[idx][1];
+      this._particles.forEach((particle, idx) => {
+        particle.position.x = positions[idx][0];
+        particle.position.y = positions[idx][1];
       });
+
+      let debug_indices = simulation.send_debug_to_js(0, 0)['indices'];
+      debug_indices.forEach((index) => {
+        this._particles[index].material.setUniform('emission', [0.7, 0.7, 0.7])
+        // debugger
+      })
+
     }
   });
 }
