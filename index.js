@@ -4,7 +4,7 @@ let simulation = null;
 
 rust
   .then(m => {
-    simulation = new m.Simulation(100, 800, 600, 0.6, 0.2)
+    simulation = new m.Simulation(200, 100, 100, 2.0, 2.4, 1.0)
     console.log(simulation.send_simulation_to_js())
     run();
   })
@@ -33,7 +33,7 @@ const fsCode = `
   }
   `;
 
-const scale = 0.01
+const scale = 0.3
 
 function run() {
   let app = clay.application.create('#viewport', {
@@ -47,20 +47,12 @@ function run() {
         'orthographic',
         [this.width * scale, this.height * scale, 1000]);
 
-      let instancedCubeMesh = new clay.InstancedMesh({
-        geometry: new clay.geometry.Sphere({
-          radius: 0.1,
-        }),
-        material: new clay.Material({
-        })
-      });
-
-
       let positions = simulation.send_simulation_to_js()['positions'];
       this._particles = [];
       for (let i = 0; i < positions.length; i++) {
 
         let sphere = app.createSphere({
+          radius: 20.0,
           shader: new clay.Shader(vsCode, fsCode)
         });
 
@@ -70,27 +62,30 @@ function run() {
           0
         );
 
-        sphere.scale.set(0.1, 0.1, 0.1)
+        sphere.scale.set(2.0, 2.0, 2.0);
+
         this._particles.push(sphere)
 
       }
 
+
     },
 
     loop: function (app) {
-      const dt = 1.0 / 60.0
-      simulation.step(dt)
-      let positions = simulation.send_simulation_to_js()['positions'];
+      simulation.step(1.0 / 60.0)
+
+      let positions = simulation.send_simulation_to_js()['positions']
 
       this._particles.forEach((particle, idx) => {
         particle.position.x = positions[idx][0];
         particle.position.y = positions[idx][1];
       });
 
-      let debug_indices = simulation.send_debug_to_js(0, 0)['indices'];
+
+      let debug_indices = simulation.send_debug_to_js(0, 0)['indices']
+      console.log(debug_indices)
       debug_indices.forEach((index) => {
         this._particles[index].material.setUniform('emission', [0.7, 0.7, 0.7])
-        // debugger
       })
 
     }
