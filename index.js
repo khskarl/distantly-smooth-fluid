@@ -65,13 +65,14 @@ function run() {
         sphere.scale.set(2.0, 2.0, 2.0);
 
         this._particles.push(sphere)
-
       }
-
-
     },
 
     loop: function (app) {
+      this._particles.forEach((particle) => {
+        particle.material.setUniform('emission', [0.0, 0.0, 0.0])
+      })
+
       simulation.step(1.0 / 60.0)
 
       let positions = simulation.send_simulation_to_js()['positions']
