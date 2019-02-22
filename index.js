@@ -4,8 +4,19 @@ let simulation = null;
 
 rust
   .then(m => {
-    simulation = new m.Simulation(200, 100, 100, 2.0, 2.4, 1.0)
+    const num_particles = 100
+    const width = 100
+    const height = 100
+    const neighbor_radius = 2.0
+    const theta_step = 2.4
+    const radius_step = 1.0
+
+    simulation = new m.Simulation(
+      num_particles, width, height, neighbor_radius, theta_step, radius_step
+    )
+
     console.log(simulation.send_simulation_to_js())
+
     run();
   })
   .catch(console.error);
@@ -84,11 +95,9 @@ function run() {
 
 
       let debug_indices = simulation.send_debug_to_js(0, 0)['indices']
-      console.log(debug_indices)
       debug_indices.forEach((index) => {
         this._particles[index].material.setUniform('emission', [0.7, 0.7, 0.7])
       })
-
     }
   });
 }
