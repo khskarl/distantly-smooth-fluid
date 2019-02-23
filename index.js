@@ -68,6 +68,45 @@ function run() {
         this._particles.push(sphere)
       }
 
+      var Shader = clay.Shader;
+      var pp_FilterNode = clay.compositor.FilterNode;
+      var pp_SceneNode = clay.compositor.SceneNode;
+      this._compositor = new clay.compositor.Compositor();
+
+      this._compositor.addNode(new pp_SceneNode({
+        name: 'scene',
+        scene: app.scene,
+        camera: this._camera,
+        outputs: {
+          'color': {
+            parameters: {
+              width: 1024,
+              height: 1024
+            }
+          }
+        }
+      }));
+
+
+      var colorAdjustNode = new pp_FilterNode({
+        name: 'coloradjust',
+        shader: Shader.source('clay.compositor.coloradjust'),
+        inputs: {
+          'texture': {
+            node: 'scene',
+            pin: 'color'
+          }
+        },
+        outputs: null
+      })
+      colorAdjustNode.setParameter('gamma', 1.3);
+      this._compositor.addNode(colorAdjustNode);
+      this._compositor.render(app.renderer);
+
+      // setInterval(function(){
+      //     mesh.rotation.rotateY(Math.PI/500);
+      // }, 20);
+
     },
 
     loop: function (app) {
@@ -86,11 +125,12 @@ function run() {
         particle.position.y = positions[idx][1];
       });
 
+      this._compositor.render(app.renderer)
       let debug_indices = simulation.send_debug_to_js(0, 0)['indices']
       // debug_indices.forEach((index) => {
       //   this._particles[index].material.setUniform('emission', [0.7, 0.7, 0.7])
       // })
-      stats.end();
+      stats.end()
     }
   });
 }
