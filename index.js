@@ -4,17 +4,17 @@ let simulation = null;
 
 rust
   .then(m => {
-    const num_particles = 100
-    const width = 100
+    const num_particles = 200
+    const width = 50.0
     const particle_radius = 1.5;
 
 
     let distribution = new m.Distribution(1.4, 0.5)
     let sim_params = new m.SimulationParameters(
-      particle_radius * 1.6,
+      particle_radius * 3.0,
       1.0,
-      10.0 * 1.0,
-      800.0 * 1.0,
+      60.0,
+      1000.0,
       true
     )
 
