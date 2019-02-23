@@ -4,7 +4,7 @@ let simulation = null;
 
 rust
   .then(m => {
-    const num_particles = 200
+    const num_particles = 400
     const width = 50.0
     const particle_radius = 1.5;
 
