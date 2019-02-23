@@ -1,4 +1,7 @@
 module.exports = {
+  "ecmaFeatures": {
+    "modules": true,
+  },
   "env": {
     "browser": true,
     "es6": true
