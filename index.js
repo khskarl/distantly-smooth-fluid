@@ -1,32 +1,51 @@
-const rust = import('./pkg/distantly_smooth_fluid');
+let rust = import('./pkg/distantly_smooth_fluid');
+
+const stats = new Stats();
+stats.showPanel(0);
+stats.domElement.style.position = 'absolute';
+stats.domElement.style.top = 0;
+stats.domElement.style.left = 0;
+document.body.appendChild(stats.domElement);
+
+const gui = new dat.GUI();
 
 let simulation = null;
 
+let num_particles = 1000
+let width = 75.0
+let particle_radius = 1.0;
+
 rust
   .then(m => {
-    const num_particles = 400
-    const width = 50.0
-    const particle_radius = 1.5;
-
-
-    let distribution = new m.Distribution(1.4, 0.5)
-    let sim_params = new m.SimulationParameters(
-      particle_radius * 3.0,
-      1.0,
-      60.0,
-      1000.0,
-      true
-    )
-
-    simulation = new m.Simulation(
-      num_particles, width, sim_params, distribution
-    )
-
-    console.log(simulation.send_simulation_to_js())
-
-    run();
+    rust = m
+    initialize_simulation()
+    initialize_gui()
+    run()
   })
-  .catch(console.error);
+  .catch(console.error)
+
+function initialize_simulation() {
+  let distribution = new rust.Distribution(1.4, 1.0)
+  let sim_params = new rust.SimulationParameters(
+    particle_radius * 3.0,
+    1.0,
+    60.0,
+    1000.0,
+    true
+  )
+
+  simulation = new rust.Simulation(
+    num_particles, width, sim_params, distribution
+  )
+}
+
+function initialize_gui() {
+  gui.add(simulation.params, 'smoothing_radius', 1.0, 5.0)
+  gui.add(simulation.params, 'rest_density', -5, 5)
+  gui.add(simulation.params, 'stiffness', -5, 5)
+  gui.add(simulation.params, 'stiffness_near', -5, 5)
+  gui.add(simulation.params, 'has_gravity')
+}
 
 const vsCode = `
   attribute vec3 position: POSITION;
@@ -70,7 +89,7 @@ function run() {
       for (let i = 0; i < positions.length; i++) {
 
         let sphere = app.createSphere({
-          radius: 20.0,
+          radius: 1.0,
           shader: new clay.Shader(vsCode, fsCode)
         });
 
@@ -80,18 +99,20 @@ function run() {
           0
         );
 
-        sphere.scale.set(2.0, 2.0, 2.0);
+        sphere.scale.set(1.0, 1.0, 1.0);
 
         this._particles.push(sphere)
       }
     },
 
     loop: function (app) {
+      const dt = app.frameTime / 1000
+      stats.begin();
       this._particles.forEach((particle) => {
         particle.material.setUniform('emission', [0.0, 0.0, 0.0])
       })
 
-      simulation.step(1.0 / 60.0)
+      simulation.step(dt)
 
       let positions = simulation.send_simulation_to_js()['positions']
 
@@ -102,9 +123,10 @@ function run() {
 
 
       let debug_indices = simulation.send_debug_to_js(0, 0)['indices']
-      debug_indices.forEach((index) => {
-        this._particles[index].material.setUniform('emission', [0.7, 0.7, 0.7])
-      })
+      // debug_indices.forEach((index) => {
+      //   this._particles[index].material.setUniform('emission', [0.7, 0.7, 0.7])
+      // })
+      stats.end();
     }
   });
 }
