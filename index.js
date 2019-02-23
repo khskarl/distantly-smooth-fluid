@@ -6,13 +6,20 @@ rust
   .then(m => {
     const num_particles = 100
     const width = 100
-    const height = 100
-    const neighbor_radius = 2.0
-    const theta_step = 2.4
-    const radius_step = 1.0
+    const particle_radius = 1.5;
+
+
+    let distribution = new m.Distribution(1.4, 0.5)
+    let sim_params = new m.SimulationParameters(
+      particle_radius * 1.6,
+      1.0,
+      10.0 * 1.0,
+      800.0 * 1.0,
+      true
+    )
 
     simulation = new m.Simulation(
-      num_particles, width, height, neighbor_radius, theta_step, radius_step
+      num_particles, width, sim_params, distribution
     )
 
     console.log(simulation.send_simulation_to_js())
