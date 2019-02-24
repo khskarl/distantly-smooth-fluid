@@ -3,30 +3,50 @@ import * as Shaders from './js/shaders.mjs';
 import * as Utils from './js/utils.mjs';
 
 let stats = Utils.initialize_stats();
-let gui = null;
-let simulation = null;
+var gui = null;
+var simulation = null;
 
-let num_particles = 800
+let num_particles = 1000
 let bounds_radius = 60.0
 let particle_radius = 1.0
+
+var params = {
+  smoothing_radius: particle_radius * 3.0,
+  rest_density: 1.0,
+  stiffness: 60.0,
+  near_stiffness: 1000.0,
+  gravity: true,
+}
+
+console.log(params)
 
 Rust
   .then(m => {
     Rust = m
-    simulation = initialize_simulation()
-    gui = Utils.initialize_gui(simulation)
+    reset()
+
+    gui = Utils.initialize_gui(params)
+    var obj = {
+      reset: function () { reset() },
+    }
+    gui.add(obj, 'reset');
+
     run()
   })
   .catch(console.error)
 
+function reset() {
+  simulation = initialize_simulation()
+}
+
 function initialize_simulation() {
   let distribution = new Rust.Distribution(1.4, 1.0)
   let sim_params = new Rust.SimulationParameters(
-    particle_radius * 3.0,
-    1.0,
-    60.0,
-    1000.0,
-    true
+    params.smoothing_radius,
+    params.rest_density,
+    params.stiffness,
+    params.near_stiffness,
+    params.gravity
   )
 
   return new Rust.Simulation(
@@ -34,7 +54,7 @@ function initialize_simulation() {
   )
 }
 
-const scale = 0.16
+const scale = 0.17
 let width = window.innerWidth
 let height = window.innerHeight
 
@@ -73,14 +93,15 @@ function run() {
 
   let spheres = [];
   for (var i = 0; i < simulation.particle_count(); i++) {
-
     var sphere = new clay.Mesh({
       geometry: new clay.geometry.Sphere(),
       material: material
-    });
+    })
+
     sphere.material.set('color', [1, 1, 1]);
     sphere.position.set(0, 0, 0);
-    sphere.scale.set(1.4, 1.4, 1.4);
+    sphere.scale.set(1.5, 1.5, 1.4);
+
     scene.add(sphere)
     spheres.push(sphere)
   }
@@ -92,8 +113,8 @@ function run() {
     outputs: {
       'color': {
         parameters: {
-          width: 512,
-          height: 512
+          width: width / 8,
+          height: height / 8
         }
       }
     }

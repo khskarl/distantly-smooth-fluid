@@ -1,16 +1,16 @@
-export function initialize_gui(sim) {
-  let gui = new dat.GUI();
-  gui.add(sim.params, 'smoothing_radius', 1.0, 5.0)
-  gui.add(sim.params, 'rest_density', -5, 5)
-  gui.add(sim.params, 'stiffness', -5, 5)
-  gui.add(sim.params, 'stiffness_near', -5, 5)
-  gui.add(sim.params, 'has_gravity')
+export function initialize_gui(params) {
+  var gui = new dat.GUI();
+  gui.add(params, 'smoothing_radius', 1.0, 5.0)
+  gui.add(params, 'rest_density', 1.0, 10.0)
+  gui.add(params, 'stiffness', 1, 100)
+  gui.add(params, 'near_stiffness', 10, 1000)
+  gui.add(params, 'gravity')
   return gui
 }
 
 
 export function initialize_stats() {
-  let stats = new Stats();
+  var stats = new Stats();
   stats.showPanel(0);
   stats.domElement.style.position = 'absolute';
   stats.domElement.style.top = 0;

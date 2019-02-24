@@ -37,7 +37,15 @@ export const fluid = {
 
     vec2 resolution = 1.0 / viewport.zw;
 
-    vec3 color = texture2D(texture, (gl_FragCoord.xy) * resolution).xyz;
+    // vec3 color = texture2D(texture, (gl_FragCoord.xy) * resolution).xyz;
+    float value = texture2D(texture, (gl_FragCoord.xy) * resolution).x;
+    vec3 color = vec3(0.1, 0.1, 0.15);
+    if (value > 0.7) {
+      color = vec3(0.3, 0.5, 0.9);
+    }
+    else if (value > 0.5) {
+      color = vec3(0.4, 0.7, 1.0);
+    }
     gl_FragColor = vec4(color, 1.0);
   }
   `
