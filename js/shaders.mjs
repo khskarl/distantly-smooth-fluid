@@ -15,39 +15,30 @@ export const mesh = {
   fs_code: `
   varying vec3 v_Normal;
   uniform vec3 emission;
-  uniform vec2 positions[3];
 
   void main() {
-      vec3 color = max(vec3(v_Normal.xy, 1.0), emission);
+      float dot = dot(v_Normal, vec3(0.0, 0.0, 1.0));
+      vec3 color = max(vec3(dot, dot, dot), emission);
       gl_FragColor = vec4(color, 1.0);
   }
   `
 };
 
 export const fluid = {
-  vs_code: `
-  attribute vec3 position: POSITION;
-
-  uniform sampler2D uPressure;
-  void main() {
-      gl_Position = vec4(position, 1.0);
-  }
-  `,
-
   fs_code: `
-  precision highp float;
-  precision mediump sampler2D;
+  uniform sampler2D texture;
+  uniform vec4 viewport : VIEWPORT;
 
-  uniform vec2 positions[3];
+  varying vec2 v_Texcoord;
 
   void main() {
-    // texture2D(uPressure, boundary(vL)).x;
-    float d = 0.0;
-    for (int i = 0; i < 3; i++) {
+    // vec2 st = gl_FragCoord.xy / resolution.xy - vec2(1.0, 1.0);
+    // st /= 0.01;
 
-    }
-    // vec3 color = max(vec3(v_Normal.xy, 1.0), emission);
-    gl_FragColor = vec4(1.0, 1.0, 0.3, 1.0);
+    vec2 resolution = 1.0 / viewport.zw;
+
+    vec3 color = texture2D(texture, (gl_FragCoord.xy) * resolution).xyz;
+    gl_FragColor = vec4(color, 1.0);
   }
   `
 }

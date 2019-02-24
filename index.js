@@ -6,9 +6,9 @@ let stats = Utils.initialize_stats();
 let gui = null;
 let simulation = null;
 
-let num_particles = 1200
-let width = 75.0
-let particle_radius = 1.0;
+let num_particles = 800
+let bounds_radius = 60.0
+let particle_radius = 1.0
 
 Rust
   .then(m => {
@@ -26,111 +26,146 @@ function initialize_simulation() {
     1.0,
     60.0,
     1000.0,
-    false
+    true
   )
 
   return new Rust.Simulation(
-    num_particles, width, sim_params, distribution
+    num_particles, bounds_radius, sim_params, distribution
   )
 }
 
 const scale = 0.16
+let width = window.innerWidth
+let height = window.innerHeight
 
 function run() {
-  let app = clay.application.create('#viewport', {
-    width: window.innerWidth,
-    height: window.innerHeight,
+  var Shader = clay.Shader;
+  var pp_FilterNode = clay.compositor.FilterNode;
+  var pp_SceneNode = clay.compositor.SceneNode;
+  var compositor = new clay.compositor.Compositor();
 
-    init: function (app) {
-      this._camera = app.createCamera(
-        [0, 0, 10],
-        [0, 0, 0],
-        'orthographic',
-        [this.width * scale, this.height * scale, 100]);
+  let renderer = new clay.Renderer({
+    canvas: document.getElementById('viewport')
+  })
 
-      let positions = simulation.send_simulation_to_js()['positions'];
-      this._particles = [];
-      for (let i = 0; i < positions.length; i++) {
+  let camera = new clay.camera.Orthographic({
+    left: (width * scale) * -0.5,
+    right: (width * scale) * 0.5,
+    top: (height * scale) * 0.5,
+    bottom: (height * scale) * -0.5,
+    near: -50,
+    far: 50
+  })
 
-        let sphere = app.createSphere({
-          radius: 1.0,
-          shader: new clay.Shader(Shaders.mesh.vs_code, Shaders.mesh.fs_code)
-        });
+  camera.position.set(0, 0, 10)
 
-        sphere.position.set(
-          positions[i][0],
-          positions[i][1],
-          0
-        );
+  camera.lookAt(new clay.Vector3())
+  renderer.resize(width, height)
 
-        sphere.scale.set(1.0, 1.0, 1.0);
+  let scene = new clay.Scene()
 
-        this._particles.push(sphere)
-      }
-
-      var Shader = clay.Shader;
-      var pp_FilterNode = clay.compositor.FilterNode;
-      var pp_SceneNode = clay.compositor.SceneNode;
-      this._compositor = new clay.compositor.Compositor();
-
-      this._compositor.addNode(new pp_SceneNode({
-        name: 'scene',
-        scene: app.scene,
-        camera: this._camera,
-        outputs: {
-          'color': {
-            parameters: {
-              width: 1024,
-              height: 1024
-            }
-          }
-        }
-      }));
-
-
-      var colorAdjustNode = new pp_FilterNode({
-        name: 'coloradjust',
-        shader: Shader.source('clay.compositor.coloradjust'),
-        inputs: {
-          'texture': {
-            node: 'scene',
-            pin: 'color'
-          }
-        },
-        outputs: null
-      })
-      colorAdjustNode.setParameter('gamma', 1.3);
-      this._compositor.addNode(colorAdjustNode);
-      this._compositor.render(app.renderer);
-
-      // setInterval(function(){
-      //     mesh.rotation.rotateY(Math.PI/500);
-      // }, 20);
-
-    },
-
-    loop: function (app) {
-      const dt = app.frameTime / 1000
-      stats.begin();
-      this._particles.forEach((particle) => {
-        particle.material.setUniform('emission', [0.0, 0.0, 0.0])
-      })
-
-      simulation.step(dt)
-
-      let positions = simulation.send_simulation_to_js()['positions']
-
-      this._particles.forEach((particle, idx) => {
-        particle.position.x = positions[idx][0];
-        particle.position.y = positions[idx][1];
-      });
-
-      this._compositor.render(app.renderer)
-      let debug_indices = simulation.send_debug_to_js(0, 0)['indices']
-      // debug_indices.forEach((index) => {
-      //   this._particles[index].material.setUniform('emission', [0.7, 0.7, 0.7])
-      // })
-      stats.end()
-    }
+  var material = new clay.Material({
+    shader: new clay.Shader(
+      Shaders.mesh.vs_code,
+      Shaders.mesh.fs_code,
+    )
   });
+
+  let spheres = [];
+  for (var i = 0; i < simulation.particle_count(); i++) {
+
+    var sphere = new clay.Mesh({
+      geometry: new clay.geometry.Sphere(),
+      material: material
+    });
+    sphere.material.set('color', [1, 1, 1]);
+    sphere.position.set(0, 0, 0);
+    sphere.scale.set(1.4, 1.4, 1.4);
+    scene.add(sphere)
+    spheres.push(sphere)
+  }
+
+  compositor.addNode(new pp_SceneNode({
+    name: 'scene',
+    scene: scene,
+    camera: camera,
+    outputs: {
+      'color': {
+        parameters: {
+          width: 512,
+          height: 512
+        }
+      }
+    }
+  }));
+
+  var upsample = new pp_FilterNode({
+    name: 'gaussian_blur',
+    shader: clay.Shader.source('clay.compositor.gaussian_blur'),
+    inputs: {
+      'texture': {
+        node: 'scene',
+        pin: 'color'
+      }
+    },
+    outputs: {
+      color: {
+        attachment: clay.FrameBuffer.COLOR_ATTACHMENT0,
+        parameters: {
+          format: clay.Texture.RGBA,
+          width: width,
+          height: height
+        },
+        // Node will keep the RTT rendered in last frame
+        keepLastFrame: true,
+        // Force the node output the RTT rendered in last frame
+        outputLastFrame: true
+      }
+    }
+  })
+
+  var thing = new pp_FilterNode({
+    name: 'thing',
+    shader: Shaders.fluid.fs_code,
+    inputs: {
+      'texture': {
+        node: 'scene',
+        pin: 'color'
+      }
+    },
+    outputs: null
+  })
+
+  // colorAdjustNode.setParameter('resolution', [width, height]);
+  compositor.addNode(upsample);
+  compositor.addNode(thing);
+
+  var picking = new clay.picking.PixelPicking({
+    renderer: renderer
+  });
+
+  setInterval(function () {
+    stats.begin()
+    simulation.step(1 / 60)
+    compositor.render(renderer)
+
+    let positions = simulation.send_simulation_to_js()['positions']
+    for (let i = 0; i < positions.length; i++) {
+      spheres[i].position.set(positions[i][0], positions[i][1], 0)
+    }
+    picking.update(scene, camera);
+
+    stats.end()
+  }, 16)
+
+  renderer.canvas.addEventListener('click', function (e) {
+    console.log(picking.pick(e.offsetX, e.offsetY));
+  });
+  //     this._compositor.render(app.renderer)
+  //     let debug_indices = simulation.send_debug_to_js(0, 0)['indices']
+  //     // debug_indices.forEach((index) => {
+  //     //   this._particles[index].material.setUniform('emission', [0.7, 0.7, 0.7])
+  //     // })
+  //   }
+  // });
 }
