@@ -9,6 +9,7 @@ var simulation = null;
 let num_particles = 1000
 let bounds_radius = 60.0
 let particle_radius = 1.0
+let render_as_water = true
 
 var params = {
   smoothing_radius: particle_radius * 3.0,
@@ -16,9 +17,8 @@ var params = {
   stiffness: 60.0,
   near_stiffness: 1000.0,
   gravity: true,
+  render_as_water: true
 }
-
-console.log(params)
 
 Rust
   .then(m => {
@@ -67,6 +67,7 @@ function run() {
   let renderer = new clay.Renderer({
     canvas: document.getElementById('viewport')
   })
+  renderer.clearColor = [0.1, 0.1, 0.15]
 
   let camera = new clay.camera.Orthographic({
     left: (width * scale) * -0.5,
@@ -167,8 +168,18 @@ function run() {
 
   setInterval(function () {
     stats.begin()
+
+    if (mouse.is_down == true) {
+      simulation.attract(mouse.x, mouse.y, 10.0, 10.0, 1 / 60)
+    }
+
     simulation.step(1 / 60)
-    compositor.render(renderer)
+    if (params.render_as_water) {
+      compositor.render(renderer)
+    }
+    else {
+      renderer.render(scene, camera)
+    }
 
     let positions = simulation.send_simulation_to_js()['positions']
     for (let i = 0; i < positions.length; i++) {
@@ -179,9 +190,28 @@ function run() {
     stats.end()
   }, 16)
 
-  renderer.canvas.addEventListener('click', function (e) {
-    console.log(picking.pick(e.offsetX, e.offsetY));
-  });
+  var mouse = { x: 0.0, y: 0.0, is_down: false }
+
+  renderer.canvas.addEventListener('mousedown', function (e) {
+    console.log("Mouse down")
+
+    mouse.is_down = true
+  })
+
+  renderer.canvas.addEventListener('mouseup', function (e) {
+    console.log("Mouse up")
+
+    mouse.is_down = false
+  })
+
+  renderer.canvas.addEventListener('mousemove', function (e) {
+    const x = (e.offsetX - width * 0.5) * scale
+    const y = (height * 0.5 - e.offsetY) * scale
+    mouse.x = x;
+    mouse.y = y;
+    console.log("Mouse move")
+  })
+
   //     this._compositor.render(app.renderer)
   //     let debug_indices = simulation.send_debug_to_js(0, 0)['indices']
   //     // debug_indices.forEach((index) => {

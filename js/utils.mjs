@@ -5,6 +5,7 @@ export function initialize_gui(params) {
   gui.add(params, 'stiffness', 1, 100)
   gui.add(params, 'near_stiffness', 10, 1000)
   gui.add(params, 'gravity')
+  gui.add(params, 'render_as_water')
   return gui
 }
 
