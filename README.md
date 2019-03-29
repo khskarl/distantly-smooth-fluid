@@ -21,3 +21,4 @@ TODO: Come back here
 - [ ] Color palettes as a 2D texture
 - [ ] Improve PixelJunk renderer
 - [ ] Add [Kawase Blur](https://software.intel.com/en-us/blogs/2014/07/15/an-investigation-of-fast-real-time-gpu-based-image-blur-algorithms) + step renderer
+- [ ] Delayed clear buffer with complementary dithering patterns
